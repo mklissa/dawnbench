@@ -99,6 +99,8 @@ class GluonLearner():
 #                         print(len(x_part))
                         y_pred_part = self.model(x_part)
                         loss = criterion(y_pred_part, y_true_part)
+                        if epoch ==0 and batch_idx ==0:
+                            experiment_start=time.time()
                         # store the losses and do backward after we have done forward on all GPUs.
                         # for better performance on multiple GPUs.
                         losses.append(loss)
@@ -130,8 +132,9 @@ class GluonLearner():
             # log maximum validation accuracy
             if val_acc > max_val_acc['val_acc']:
                 max_val_acc = {'val_acc': val_acc, 'trn_acc': trn_acc, 'epoch': epoch}
-            logging.info(("(Max validation accuracy={}"
-                          ", Max training accuracy={})").format(max_val_acc['val_acc'], max_val_acc['trn_acc']))
+            logging.info(("(Max val={}, Max train={}, Time= {})").format(max_val_acc['val_acc'],
+                                                                        max_val_acc['trn_acc']),
+                                                                          time.time()-experiment_start)
 
             
 
