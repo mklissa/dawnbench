@@ -113,32 +113,32 @@ class GluonLearner():
 
 
                 # log batch speed (if a multiple of log_frequency is contained in the last batch)
-                log_batch = (samples_processed // log_frequency) != ((samples_processed + batch_size) // log_frequency)
-                if ((batch_idx >= 1) and log_batch):
-                    # batch estimate, not averaged over multiple batches
-                    speed = batch_size / (time.time() - batch_tick)
-                    logging.info('Epoch {}, Batch {}, Speed={:.2f} images/second'.format(epoch, batch_idx, speed))
+#                 log_batch = (samples_processed // log_frequency) != ((samples_processed + batch_size) // log_frequency)
+#                 if ((batch_idx >= 1) and log_batch):
+#                     # batch estimate, not averaged over multiple batches
+#                     speed = batch_size / (time.time() - batch_tick)
+#                     logging.info('Epoch {}, Batch {}, Speed={:.2f} images/second'.format(epoch, batch_idx, speed))
                 samples_processed += batch_size
 
             # log training accuracy
             _, trn_acc = train_metric.get()
-            logging.info('Epoch {}, Training accuracy={}'.format(epoch, trn_acc))
+#             logging.info('Epoch {}, Training accuracy={}'.format(epoch, trn_acc))
 
 
             # log validation accuracy
             val_acc = evaluate_accuracy(valid_data, self.model, ctx=self.context)
-            logging.info('Epoch {}, Validation accuracy={}'.format(epoch, val_acc))
+            logging.info('Epoch {}, Training accuracy={}, Validation accuracy={}'.format(epoch, trn_acc, val_acc))
 
             # log maximum validation accuracy
             if val_acc > max_val_acc['val_acc']:
                 max_val_acc = {'val_acc': val_acc, 'trn_acc': trn_acc, 'epoch': epoch}
             logging.info(("(Max val={}, Max train={}, Time= {})").format(max_val_acc['val_acc'],
-                                                                        max_val_acc['trn_acc']),
-                                                                          time.time()-experiment_start)
+                                                                        max_val_acc['trn_acc'],
+                                                                        time.time()-experiment_start))
 
             
 
-            logging.info('Epoch {}, Duration={}'.format(epoch, time.time() - epoch_tick))
+#             logging.info('Epoch {}, Duration={}'.format(epoch, time.time() - epoch_tick))
 
             
             if early_stopping_criteria:
