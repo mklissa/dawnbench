@@ -1,0 +1,5 @@
+2018-06-08 18:14:03,738 resnet164_basic_gluon.py
+2018-06-08 18:14:03,739 Using CPU.
+2018-06-08 18:14:05,391 Using Gluon Learner.
+2018-06-08 18:14:05,403 Epoch 0, Changed learning rate.
+2018-06-08 18:14:05,403 Epoch 0, Learning rate=0.01
