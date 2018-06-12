@@ -8,17 +8,30 @@ from arg_parsing import process_args
 from logger import construct_run_id, configure_root_logger
 from data_loaders.cifar10 import Cifar10
 from models.resnet18_basic import resnet18Basic
+from models.wrn_basic import wrn
 from learners.gluon import GluonLearner
 import random
 import numpy as np
 import pdb
 
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--epochs', type=int, default=140)
+    parser.add_argument('--lr-schedule', type=str, default='step')
+    parser.add_argument('--model', type=str, default='wrn')
+    parser.add_argument('--batch-size', type=int, default=128)
+    parser.add_argument('--seed', type=int, default=789)
+    return parser.parse_args()
+
+args = parse_args()
+
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
-    random.seed(0)
-    np.random.seed(0)
-    mx.random.seed(777)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    mx.random.seed(args.seed)
     
 
     hosts=['algo0']
@@ -29,28 +42,30 @@ if __name__ == "__main__":
         kvstore = 'dist_device_sync'
 
 
-    batch_size = 128
-    train_data, valid_data = Cifar10(batch_size=batch_size,
+
+    train_data, valid_data = Cifar10(batch_size=args.batch_size,
                                      data_shape=(3, 32, 32),
                                      padding=4,
                                      padding_value=0,
                                      normalization_type="channel").return_dataloaders()
 
-    mult = 1.
-    lr_schedule = {0: 0.01*mult, 5: 0.1*mult, 95: 0.01*mult, 105: 0.001*mult}
-    lr=0.1*mult
-    
     dtype='float32'
-    model = resnet18Basic(num_classes=10)
+    mult = 1.
+
+    if args.lr_schedule=='step':
+        args.lr_schedule = {0: 0.01*mult, 5: 0.1*mult, 95: 0.01*mult, 105: 0.001*mult}
+
+    
+    if args.model =='wrn':
+        model = wrn(num_classes=10)
 
     learner = GluonLearner(model, hybridize=False, ctx=[mx.gpu(0)])
     learner.fit(train_data=train_data,
                 valid_data=valid_data,
-                epochs=30,
-                lr=lr,
-#                 lr_schedule=lr_schedule,
+                epochs=args.epochs,
+                lr_schedule=args.lr_schedule,
                 initializer=mx.init.Xavier(rnd_type='gaussian', factor_type='out', magnitude=2),
-                optimizer=mx.optimizer.NAG(learning_rate=lr_schedule[0], rescale_grad=1.0/batch_size, momentum=0.9, wd=0.0005),
+                optimizer=mx.optimizer.NAG(learning_rate=0.1, rescale_grad=1.0/batch_size, momentum=0.9, wd=0.0005),
                 early_stopping_criteria=lambda e: e >= 0.94,
                 kvstore=kvstore,
                 dtype=dtype,) 

@@ -31,13 +31,15 @@ class GluonLearner():
     
     def fit(self, train_data, valid_data,
             epochs=300,
-            lr=None, lr_schedule=None,
+            lr_schedule=None,
             initializer=mx.init.Xavier(),
             optimizer=None,
             kvstore='device',
             log_frequency=10000,
             early_stopping_criteria=None,
-            dtype='float32'
+            dtype='float32',
+            extra=0,
+            burnout=0
         ):
 
         def linear_cycle(lr_initial=0.1, epochs=10, low_lr=0.005, extra=5, **kwargs):
@@ -53,16 +55,17 @@ class GluonLearner():
 
             return f        
 
-        lr_scheduler = linear_cycle(epochs=epochs, low_lr=0.005, extra=7)
+        # if lr_schedule=='linear_cycle':
+        #     lr_scheduler = linear_cycle(epochs=epochs, low_lr=0.005, extra=extra)
         
         
         
-        if lr_schedule is None:
-            assert lr is not None, "lr must be defined if not using lr_schedule"
-            lr_schedule = {0: lr}
-        else:
-            assert lr is None, "lr should not be defined if using lr_schedule"
-            assert 0 in lr_schedule.keys(), "lr for epoch 0 must be defined in lr_schedule"
+        # if lr_schedule is None:
+        #     assert lr is not None, "lr must be defined if not using lr_schedule"
+        #     lr_schedule = {0: lr}
+        # else:
+        #     assert lr is None, "lr should not be defined if using lr_schedule"
+        #     assert 0 in lr_schedule.keys(), "lr for epoch 0 must be defined in lr_schedule"
 
         self.model.initialize(initializer, ctx=self.context)
 
@@ -71,10 +74,13 @@ class GluonLearner():
         criterion = mx.gluon.loss.SoftmaxCrossEntropyLoss()
         max_val_acc = {'val_acc': 0, 'trn_acc': 0, 'epoch': 0}
 
-        for epoch in range(epochs+5+5):
+        for epoch in range(epochs+extra+burnout):
             epoch_tick = time.time()
 
-
+            if epoch in lr_schedule.keys():
+                trainer.set_learning_rate(lr_schedule[epoch])
+                logging.info("Epoch {}, Changed learning rate.".format(epoch))
+                
             logging.info('Epoch {}, Learning rate={}'.format(epoch, trainer.learning_rate))
 
 
@@ -84,9 +90,10 @@ class GluonLearner():
                 batch_tick = time.time()
                 batch_size = data.shape[0]
                 
-                new_lr = lr_scheduler(epoch + batch_idx / int(50000/batch_size))
-                trainer.set_learning_rate(new_lr)
-                
+                # if lr_schedule=='linear_cycle':
+                #     new_lr = lr_scheduler(epoch + batch_idx / int(50000/batch_size))
+                #     trainer.set_learning_rate(new_lr)
+
                 # partition data across all devices in context
                 data = mx.gluon.utils.split_and_load(data.astype(dtype), ctx_list=self.context, batch_axis=0)
                 label = mx.gluon.utils.split_and_load(label, ctx_list=self.context, batch_axis=0)
