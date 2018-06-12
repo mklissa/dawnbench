@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from arg_parsing import process_args
 from logger import construct_run_id, configure_root_logger
 from data_loaders.cifar10 import Cifar10
-from models.resnet18_basic import resnet18Basic
+from models.resnets_basic import resnet18Basic, wrn
 from models.wrn_basic import wrn
 from learners.gluon import GluonLearner
 import random
@@ -58,7 +58,12 @@ if __name__ == "__main__":
     
     if args.model =='wrn':
         model = wrn(num_classes=10)
-
+    elif args.model =='resnet18':
+        model = resnet18Basic(num_classes=10)        
+    else:
+        logging.error("Model not currently supported.")
+        sys.exit(0)
+        
     learner = GluonLearner(model, hybridize=False, ctx=[mx.gpu(0)])
     learner.fit(train_data=train_data,
                 valid_data=valid_data,

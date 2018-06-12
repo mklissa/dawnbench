@@ -1,7 +1,7 @@
 # Based on https://github.com/apache/incubator-mxnet/blob/master/example/image-classification/train_imagenet.py
 
 from mxnet.gluon import nn
-
+import mxnet.ndarray as nd
 
 class BasicBlock(nn.HybridBlock):
     """
@@ -30,6 +30,62 @@ class BasicBlock(nn.HybridBlock):
             shortcut = self.conv3(act1)
         return out + shortcut
 
+
+class resnet18Basic(nn.HybridBlock):
+    def __init__(self, num_classes):
+        super(resnet18Basic, self).__init__()
+        self.num_classes= num_classes
+        with self.name_scope():
+            net = self.net = nn.HybridSequential()
+            # data normalization
+            net.add(nn.BatchNorm(epsilon=2e-5, scale=True))
+            # pre-stage
+            net.add(nn.Conv2D(channels=64, kernel_size=3, strides=1, padding=1, use_bias=False))
+            
+            N=1
+ 
+            # Stage 0
+            net.add(BasicBlock(64, stride=1, dim_match=False))
+            for _ in range(N):
+                net.add(BasicBlock(64, stride=1, dim_match=True))
+                
+            # Stage 1 
+            net.add(BasicBlock(128, stride=2, dim_match=False))
+            for _ in range(N):
+                net.add(BasicBlock(128, stride=1, dim_match=True))
+                
+            # Stage 2 
+            net.add(BasicBlock(256, stride=2, dim_match=False))
+            for _ in range(N):
+                net.add(BasicBlock(256, stride=1, dim_match=True))
+                
+            # Stage 3
+            net.add(BasicBlock(256, stride=2, dim_match=False))
+            for _ in range(N):
+                net.add(BasicBlock(256, stride=1, dim_match=True))
+                
+            # post-stage (required as using pre-activation blocks)
+            net.add(nn.BatchNorm(epsilon=2e-5))
+            net.add(nn.Activation('relu'))
+            
+            
+            
+
+            net.add(nn.Dense(num_classes))
+
+    def hybrid_forward(self, F, x):
+        out = x
+        for i, b in enumerate(self.net[:-1]):
+            out = b(out)
+
+        out_avg = nn.AvgPool2D(4)(out)
+        out_max = nn.MaxPool2D(4)(out) 
+        
+        
+        out = nd.concat(out_avg,out_max,dim=1)
+        
+        out = self.net[-1](out)
+        return out
 
 class wrn(nn.HybridBlock):
     def __init__(self, num_classes,depth=40,k=2):
@@ -72,4 +128,4 @@ class wrn(nn.HybridBlock):
         out = x
         for i, b in enumerate(self.net):
             out = b(out)
-        return out
+        return out        
